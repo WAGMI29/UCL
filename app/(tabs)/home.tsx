@@ -1,13 +1,27 @@
+import { useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing } from "../../constants/theme";
-import { useAuthStore, useStreakStore } from "../../lib/store";
+import { COLLECTIONS, STORY_METADATA } from "../../constants/content";
+import {
+  useAuthStore,
+  useStreakStore,
+  useProgressStore,
+} from "../../lib/store";
 
 export default function HomeScreen() {
   const router = useRouter();
   const { displayName } = useAuthStore();
-  const { currentStreak } = useStreakStore();
+  const { currentStreak, fetchStreak } = useStreakStore();
+  const { progressMap, fetchProgress, getLastPlayed, getCollectionProgress } =
+    useProgressStore();
+
+  useEffect(() => {
+    fetchStreak();
+    fetchProgress();
+  }, []);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -15,6 +29,23 @@ export default function HomeScreen() {
     if (hour < 17) return "Good afternoon";
     return "Good evening";
   };
+
+  const lastPlayed = getLastPlayed();
+  const lastPlayedMeta = lastPlayed
+    ? STORY_METADATA[lastPlayed.storyId]
+    : null;
+
+  // Find recommended collection based on user's bible familiarity
+  const { bibleFamiliarity } = useAuthStore();
+  const recommendedMap: Record<string, string> = {
+    beginner: "stories-of-faith",
+    intermediate: "courage-and-strength",
+    advanced: "wisdom-and-proverbs",
+  };
+  const featuredId = bibleFamiliarity
+    ? recommendedMap[bibleFamiliarity] || "stories-of-faith"
+    : "stories-of-faith";
+  const featuredCollection = COLLECTIONS.find((c) => c.id === featuredId);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
@@ -30,7 +61,8 @@ export default function HomeScreen() {
             marginBottom: Spacing.xs,
           }}
         >
-          {getGreeting()}{displayName ? `, ${displayName}` : ""}
+          {getGreeting()}
+          {displayName ? `, ${displayName}` : ""}
         </Text>
         <Text
           style={{
@@ -72,10 +104,83 @@ export default function HomeScreen() {
             <Text
               style={{ fontSize: FontSize.sm, color: Colors.textSecondary }}
             >
-              Start listening to build your streak
+              {currentStreak > 0
+                ? "Keep it going!"
+                : "Start listening to build your streak"}
             </Text>
           </View>
         </View>
+
+        {/* Continue Listening */}
+        {lastPlayed && lastPlayedMeta && (
+          <>
+            <Text
+              style={{
+                fontSize: FontSize.lg,
+                fontWeight: "700",
+                color: Colors.textPrimary,
+                marginBottom: Spacing.md,
+              }}
+            >
+              Continue Listening
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push(`/story/${lastPlayed.storyId}`)}
+              activeOpacity={0.8}
+              accessibilityLabel={`Continue listening to ${lastPlayedMeta.title}`}
+              accessibilityRole="button"
+              style={{
+                backgroundColor: Colors.surface,
+                borderRadius: 16,
+                padding: Spacing.lg,
+                marginBottom: Spacing.lg,
+                flexDirection: "row",
+                alignItems: "center",
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.06,
+                shadowRadius: 8,
+                elevation: 2,
+              }}
+            >
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
+                  backgroundColor: Colors.primary,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginRight: Spacing.md,
+                }}
+              >
+                <Ionicons name="play" size={20} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontSize: FontSize.md,
+                    fontWeight: "600",
+                    color: Colors.textPrimary,
+                    marginBottom: 2,
+                  }}
+                >
+                  {lastPlayedMeta.title}
+                </Text>
+                <Text
+                  style={{ fontSize: FontSize.xs, color: Colors.textSecondary }}
+                >
+                  {Math.floor(lastPlayed.positionSeconds / 60)}m listened
+                </Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={Colors.textMuted}
+              />
+            </TouchableOpacity>
+          </>
+        )}
 
         {/* Featured Collection */}
         <Text
@@ -88,7 +193,13 @@ export default function HomeScreen() {
         >
           Featured Collection
         </Text>
-        <View
+        <TouchableOpacity
+          onPress={() =>
+            router.push(`/collection/${featuredCollection?.id || "stories-of-faith"}`)
+          }
+          activeOpacity={0.8}
+          accessibilityLabel={`Featured collection: ${featuredCollection?.title}`}
+          accessibilityRole="button"
           style={{
             backgroundColor: Colors.primary,
             borderRadius: 16,
@@ -104,19 +215,43 @@ export default function HomeScreen() {
               marginBottom: Spacing.xs,
             }}
           >
-            Stories of Faith
+            {featuredCollection?.title || "Stories of Faith"}
           </Text>
           <Text
             style={{
               fontSize: FontSize.sm,
               color: "rgba(255,255,255,0.8)",
               lineHeight: 20,
+              marginBottom: Spacing.md,
             }}
           >
-            Abraham, David, Ruth, and Mary — people who trusted God in the
-            impossible.
+            {featuredCollection?.description || ""}
           </Text>
-        </View>
+          {featuredCollection && (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: FontSize.xs,
+                  color: "rgba(255,255,255,0.7)",
+                }}
+              >
+                {featuredCollection.stories.length} stories ·{" "}
+                {Math.round(
+                  getCollectionProgress(
+                    featuredCollection.id,
+                    featuredCollection.stories
+                  ) * 100
+                )}
+                % complete
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
 
         {/* Quick Actions */}
         <Text
@@ -130,7 +265,11 @@ export default function HomeScreen() {
           Quick Actions
         </Text>
         <View style={{ flexDirection: "row", gap: Spacing.md }}>
-          <View
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/library")}
+            activeOpacity={0.8}
+            accessibilityLabel="Browse stories"
+            accessibilityRole="button"
             style={{
               flex: 1,
               backgroundColor: Colors.surface,
@@ -155,8 +294,12 @@ export default function HomeScreen() {
             >
               Start a Story
             </Text>
-          </View>
-          <View
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)/notes")}
+            activeOpacity={0.8}
+            accessibilityLabel="View your notes"
+            accessibilityRole="button"
             style={{
               flex: 1,
               backgroundColor: Colors.surface,
@@ -181,7 +324,7 @@ export default function HomeScreen() {
             >
               Your Notes
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

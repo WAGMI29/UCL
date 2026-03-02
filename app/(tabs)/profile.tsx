@@ -2,12 +2,17 @@ import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing } from "../../constants/theme";
-import { useAuthStore, useStreakStore, useNotesStore } from "../../lib/store";
+import { useAuthStore, useStreakStore, useNotesStore, useProgressStore } from "../../lib/store";
 
 export default function ProfileScreen() {
   const { displayName, user, signOut } = useAuthStore();
   const { currentStreak } = useStreakStore();
   const { notes } = useNotesStore();
+  const { progressMap } = useProgressStore();
+
+  const completedStories = Object.values(progressMap).filter(
+    (p) => p.completed
+  ).length;
 
   const initials = displayName
     ? displayName
@@ -112,7 +117,7 @@ export default function ProfileScreen() {
           }}
         >
           {[
-            { label: "Stories", value: "0" },
+            { label: "Stories", value: String(completedStories) },
             { label: "Streak", value: String(currentStreak) },
             { label: "Notes", value: String(notes.length) },
             { label: "Questions", value: "0" },
