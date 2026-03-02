@@ -1,24 +1,65 @@
 import { useEffect, useState } from "react";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { Colors } from "../constants/theme";
+import { supabase } from "../lib/supabase";
+import { useAuthStore } from "../lib/store";
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [isReady, setIsReady] = useState(false);
+function useProtectedRoute() {
+  const segments = useSegments();
+  const router = useRouter();
+  const { session, isLoading, hasCompletedOnboarding } = useAuthStore();
 
   useEffect(() => {
-    async function prepare() {
-      // TODO: Load fonts, check auth session
-      setIsReady(true);
-      await SplashScreen.hideAsync();
+    if (isLoading) return;
+
+    const inAuthGroup = segments[0] === "(auth)";
+
+    if (!session && !inAuthGroup) {
+      router.replace("/(auth)/login");
+    } else if (session && inAuthGroup) {
+      if (!hasCompletedOnboarding) {
+        router.replace("/(auth)/onboarding");
+      } else {
+        router.replace("/(tabs)/home");
+      }
     }
-    prepare();
+  }, [session, isLoading, hasCompletedOnboarding, segments]);
+}
+
+export default function RootLayout() {
+  const { setUser, setSession, setLoading, fetchProfile } = useAuthStore();
+
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile();
+      }
+      setLoading(false);
+      SplashScreen.hideAsync();
+    });
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile();
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  if (!isReady) return null;
+  useProtectedRoute();
 
   return (
     <>

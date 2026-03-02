@@ -1,9 +1,41 @@
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { Colors, FontSize, Spacing } from "../../constants/theme";
+import { useAuthStore, useStreakStore, useNotesStore } from "../../lib/store";
 
 export default function ProfileScreen() {
+  const { displayName, user, signOut } = useAuthStore();
+  const { currentStreak } = useStreakStore();
+  const { notes } = useNotesStore();
+
+  const initials = displayName
+    ? displayName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "P";
+
+  const memberSince = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString("en-US", {
+        month: "long",
+        year: "numeric",
+      })
+    : "";
+
+  const handleSignOut = () => {
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: () => signOut(),
+      },
+    ]);
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: Colors.background }}>
       <View style={{ padding: Spacing.lg }}>
@@ -32,7 +64,7 @@ export default function ProfileScreen() {
             }}
           >
             <Text style={{ fontSize: 32, color: "#FFFFFF", fontWeight: "700" }}>
-              P
+              {initials}
             </Text>
           </View>
           <Text
@@ -42,10 +74,22 @@ export default function ProfileScreen() {
               color: Colors.textPrimary,
             }}
           >
-            Parables User
+            {displayName || "Parables User"}
           </Text>
+          {memberSince ? (
+            <Text
+              style={{ fontSize: FontSize.sm, color: Colors.textSecondary }}
+            >
+              Member since {memberSince}
+            </Text>
+          ) : null}
           <Text
-            style={{ fontSize: FontSize.sm, color: Colors.textSecondary }}
+            style={{
+              fontSize: FontSize.sm,
+              color: Colors.accent,
+              fontWeight: "600",
+              marginTop: Spacing.xs,
+            }}
           >
             Free Plan
           </Text>
@@ -69,8 +113,8 @@ export default function ProfileScreen() {
         >
           {[
             { label: "Stories", value: "0" },
-            { label: "Streak", value: "0" },
-            { label: "Notes", value: "0" },
+            { label: "Streak", value: String(currentStreak) },
+            { label: "Notes", value: String(notes.length) },
             { label: "Questions", value: "0" },
           ].map((stat) => (
             <View key={stat.label} style={{ alignItems: "center" }}>
@@ -95,6 +139,33 @@ export default function ProfileScreen() {
             </View>
           ))}
         </View>
+
+        {/* Upgrade CTA */}
+        <TouchableOpacity
+          style={{
+            backgroundColor: Colors.accent,
+            borderRadius: 12,
+            padding: Spacing.lg,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: Spacing.lg,
+          }}
+          accessibilityLabel="Upgrade to Premium"
+          accessibilityRole="button"
+        >
+          <Ionicons name="star" size={20} color="#FFFFFF" />
+          <Text
+            style={{
+              fontSize: FontSize.md,
+              fontWeight: "700",
+              color: "#FFFFFF",
+              marginLeft: Spacing.sm,
+            }}
+          >
+            Upgrade to Premium
+          </Text>
+        </TouchableOpacity>
 
         {/* Settings */}
         <TouchableOpacity
@@ -134,6 +205,7 @@ export default function ProfileScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          onPress={handleSignOut}
           style={{
             backgroundColor: Colors.surface,
             borderRadius: 12,
@@ -144,11 +216,7 @@ export default function ProfileScreen() {
           accessibilityLabel="Sign out"
           accessibilityRole="button"
         >
-          <Ionicons
-            name="log-out-outline"
-            size={20}
-            color={Colors.error}
-          />
+          <Ionicons name="log-out-outline" size={20} color={Colors.error} />
           <Text
             style={{
               fontSize: FontSize.md,

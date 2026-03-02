@@ -1,8 +1,14 @@
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { Colors, FontSize, Spacing } from "../../constants/theme";
+import { useAuthStore, useStreakStore } from "../../lib/store";
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const { displayName } = useAuthStore();
+  const { currentStreak } = useStreakStore();
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good morning";
@@ -24,7 +30,7 @@ export default function HomeScreen() {
             marginBottom: Spacing.xs,
           }}
         >
-          {getGreeting()}
+          {getGreeting()}{displayName ? `, ${displayName}` : ""}
         </Text>
         <Text
           style={{
@@ -61,7 +67,7 @@ export default function HomeScreen() {
                 color: Colors.textPrimary,
               }}
             >
-              0 Day Streak
+              {currentStreak} Day Streak
             </Text>
             <Text
               style={{ fontSize: FontSize.sm, color: Colors.textSecondary }}
