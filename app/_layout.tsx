@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { Colors } from "../constants/theme";
 import { supabase } from "../lib/supabase";
 import { useAuthStore, flushWriteQueue } from "../lib/store";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -63,7 +64,7 @@ export default function RootLayout() {
   useProtectedRoute();
 
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style="dark" />
       <Stack
         screenOptions={{
@@ -85,6 +86,6 @@ export default function RootLayout() {
           options={{ animation: "slide_from_right" }}
         />
       </Stack>
-    </>
+    </ErrorBoundary>
   );
 }
