@@ -5,7 +5,7 @@ import { Colors, FontSize, Spacing, BorderRadius } from "../constants/theme";
 
 interface NoteEditorProps {
   visible: boolean;
-  storyTitle: string;
+  storyTitle?: string;
   onSave: (content: string) => void;
   onClose: () => void;
 }
@@ -80,15 +80,17 @@ export function NoteEditor({
           </TouchableOpacity>
         </View>
 
-        <Text
-          style={{
-            fontSize: FontSize.sm,
-            color: Colors.textSecondary,
-            marginBottom: Spacing.md,
-          }}
-        >
-          {storyTitle}
-        </Text>
+        {storyTitle ? (
+          <Text
+            style={{
+              fontSize: FontSize.sm,
+              color: Colors.textSecondary,
+              marginBottom: Spacing.md,
+            }}
+          >
+            {storyTitle}
+          </Text>
+        ) : null}
 
         <TextInput
           value={content}
