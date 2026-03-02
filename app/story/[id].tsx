@@ -24,6 +24,8 @@ import {
 import { useAudio } from "../../hooks/useAudio";
 import { AudioPlayer } from "../../components/AudioPlayer";
 import { NoteEditor } from "../../components/NoteEditor";
+import { VoiceQA } from "../../components/VoiceQA";
+import { useVoiceQA } from "../../hooks/useVoiceQA";
 import { generateStoryAudio, getCachedAudioUri } from "../../lib/elevenlabs";
 import {
   useProgressStore,
@@ -42,11 +44,13 @@ export default function StoryPlayerScreen() {
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showNoteEditor, setShowNoteEditor] = useState(false);
+  const [showVoiceQA, setShowVoiceQA] = useState(false);
 
   const { updateProgress, progressMap } = useProgressStore();
   const { checkAndUpdateStreak } = useStreakStore();
   const { addNote } = useNotesStore();
 
+  const voiceQA = useVoiceQA(id, script || "");
   const audio = useAudio(audioUri);
   const lastSaveRef = useRef(0);
   const hasMarkedComplete = useRef(false);
@@ -341,6 +345,7 @@ export default function StoryPlayerScreen() {
 
       {/* Voice Q&A FAB */}
       <TouchableOpacity
+        onPress={() => setShowVoiceQA(true)}
         accessibilityLabel="Ask a question about this story"
         accessibilityRole="button"
         style={{
@@ -366,8 +371,20 @@ export default function StoryPlayerScreen() {
       {/* Note Editor Modal */}
       <NoteEditor
         visible={showNoteEditor}
+        storyTitle={meta.title}
         onClose={() => setShowNoteEditor(false)}
         onSave={handleSaveNote}
+      />
+
+      {/* Voice Q&A Modal */}
+      <VoiceQA
+        visible={showVoiceQA}
+        storyTitle={meta.title}
+        onClose={() => setShowVoiceQA(false)}
+        onAskQuestion={voiceQA.askTextQuestion}
+        isProcessing={voiceQA.isProcessing}
+        response={voiceQA.response}
+        remainingQuestions={voiceQA.remainingQuestions}
       />
     </SafeAreaView>
   );
