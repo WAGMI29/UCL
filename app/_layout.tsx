@@ -4,7 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { Colors } from "../constants/theme";
 import { supabase } from "../lib/supabase";
-import { useAuthStore } from "../lib/store";
+import { useAuthStore, flushWriteQueue } from "../lib/store";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -40,6 +40,7 @@ export default function RootLayout() {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchProfile();
+        flushWriteQueue();
       }
       setLoading(false);
       SplashScreen.hideAsync();
