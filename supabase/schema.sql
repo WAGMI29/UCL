@@ -17,10 +17,10 @@ CREATE TABLE IF NOT EXISTS public.progress (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   story_id TEXT NOT NULL,
-  position REAL DEFAULT 0,
-  duration REAL DEFAULT 0,
+  collection_id TEXT NOT NULL DEFAULT '',
+  position_seconds REAL DEFAULT 0,
   completed BOOLEAN DEFAULT FALSE,
-  last_played_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(user_id, story_id)
 );
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS public.notes (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   story_id TEXT NOT NULL,
   content TEXT NOT NULL,
+  reminder_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -51,7 +52,7 @@ CREATE TABLE IF NOT EXISTS public.streaks (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
   current_streak INTEGER DEFAULT 0,
   longest_streak INTEGER DEFAULT 0,
-  last_activity_date DATE,
+  last_active_date DATE,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -150,7 +151,7 @@ BEGIN
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'display_name', '')
   );
-  INSERT INTO public.streaks (user_id, current_streak, longest_streak, last_activity_date)
+  INSERT INTO public.streaks (user_id, current_streak, longest_streak, last_active_date)
   VALUES (NEW.id, 0, 0, NULL);
   RETURN NEW;
 END;
